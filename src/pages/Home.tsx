@@ -98,27 +98,26 @@ export default function Home() {
   }, [data, last7]);
 
   const statusData = useMemo(() => {
-    const list = (data || []).map((s) => (s.estado ?? "Pendiente"));
     const counts: Record<string, number> = {
-      "Pendiente": 0,
-      "En proceso": 0,
+      "En Progreso": 0,
       "Procesada": 0,
       "Rechazada": 0,
     };
-    list.forEach((st) => {
-      if (counts[st as keyof typeof counts] !== undefined) {
-        counts[st as keyof typeof counts] += 1;
-      } else {
-        counts["Pendiente"] += 1;
-      }
+
+    (data || []).forEach((s) => {
+      const estado = s.estado?.trim().toLowerCase();
+      if (estado === "procesada") counts["Procesada"] += 1;
+      else if (estado === "rechazada") counts["Rechazada"] += 1;
+      else counts["En Progreso"] += 1; // Default/fallback
     });
+
     return [
-      { name: "Pendiente", value: counts["Pendiente"] },
-      { name: "En proceso", value: counts["En proceso"] },
+      { name: "En Progreso", value: counts["En Progreso"] },
       { name: "Procesada", value: counts["Procesada"] },
       { name: "Rechazada", value: counts["Rechazada"] },
     ];
   }, [data]);
+
 
   const colors = [
     "hsl(var(--chart-1))",
@@ -237,8 +236,7 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <ChartContainer className="h-64" config={{
-              Pendiente: { label: 'Pendiente', color: 'hsl(var(--chart-1))' },
-              'En proceso': { label: 'En proceso', color: 'hsl(var(--chart-2))' },
+              'En Progreso': { label: 'En Progreso', color: 'hsl(var(--chart-2))' },
               Procesada: { label: 'Procesada', color: 'hsl(var(--chart-3))' },
               Rechazada: { label: 'Rechazada', color: 'hsl(var(--chart-4))' },
             }}>

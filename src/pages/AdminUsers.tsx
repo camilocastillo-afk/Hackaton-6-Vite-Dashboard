@@ -109,9 +109,11 @@ export default function AdminUsers() {
     }
     setCreating(true);
     try {
-      const { error } = await supabase.functions.invoke("admin-create-user", {
+      console.log("Enviando datos:", { email, password, display_name: displayName || null, roles: selectedRoles });
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
         body: { email, password, display_name: displayName || null, roles: selectedRoles },
       });
+      console.log("Respuesta función:", { data, error });
       if (error) throw error;
       toast.success("Usuario creado correctamente");
       setCreateOpen(false);

@@ -65,6 +65,13 @@ export default function Solicitudes() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const GOOGLE_CLIENT_ID = '288076817215-4252kpp15bp5fh96321dlanqk6vp35cu.apps.googleusercontent.com';
+// Estado para modal de rechazo
+const [openRechazo, setOpenRechazo] = useState(false);
+const [rechazoMotivo, setRechazoMotivo] = useState("");
+const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null);
+
+
+
 
   useEffect(() => {
     document.title = "RRHH Bewe — Gestión de solicitudes";
@@ -175,7 +182,6 @@ export default function Solicitudes() {
   };
 
   // Función para subir archivo al Drive
-
   async function uploadFile(file: File, solicitud: Solicitud | null) {
     if (!file || !solicitud) return;
     try {
@@ -240,6 +246,8 @@ export default function Solicitudes() {
       toast({ title: 'Error', description: e.message });
     }
   }
+
+
 
   return (
     <div className="mx-auto max-w-7xl p-4 space-y-4">
@@ -327,7 +335,7 @@ export default function Solicitudes() {
                   <TableHead>Última edición</TableHead>
                   <TableHead>Solicitante</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Motivo</TableHead>
+{/*                   <TableHead>Motivo</TableHead> */}
                   <TableHead>Archivo</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -343,11 +351,36 @@ export default function Solicitudes() {
                       <TableCell>{fecha}</TableCell>
                       <TableCell>—</TableCell>
                       <TableCell>{nombreCompleto}</TableCell>
-                      <TableCell>{r.estado ?? "Pendiente"}</TableCell>
-                      <TableCell className="max-w-[240px] truncate" title={r.detalle_extras ?? undefined}>{r.detalle_extras ?? ""}</TableCell>
+                      <TableCell>
+                        <div className="bg-transparent border-0 p-0 m-0">
+                          <select
+                            className="bg-transparent border-none p-1 text-sm text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none"
+                            value={r.estado ?? ""}
+                            onChange={(e) => {
+                              const selected = e.target.value;
+                              if (selected === "Rechazada") {
+                                setRechazoSolicitud(r);
+                                setOpenRechazo(true);
+                              } else {
+                                setNewEstado(selected);
+                              }
+                            }}
+                            disabled={r.estado === 'Procesada' || r.estado === 'Rechazada'}
+                          >
+                            {r.estado === undefined && (
+                              <option value="" disabled>Selecciona un estado</option>
+                            )}
+                            {r.estado === 'Procesada' && (
+                              <option value="Procesada" disabled>Procesada</option>
+                            )}
+                            <option value="En Progreso">En progreso</option>
+                            <option value="Rechazada">Rechazada</option>
+                          </select>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={r.estado === 'Procesada'} title={r.estado === 'Procesada' ? 'Esta solicitud ya fue procesada' : 'Agregar archivo'}>
+                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={r.estado === 'Procesada' || r.estado === 'Rechazada'} title={r.estado === 'Procesada' ? 'Esta solicitud ya fue procesada' : 'Agregar archivo'}>
                             <BadgePlus className="h-4 w-4" />
                           </Button>
                         </div>
@@ -397,15 +430,15 @@ export default function Solicitudes() {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Estado</div>
-                    <div className="font-medium">{viewing.estado_solicitud ?? "Pendiente"}</div>
+                    <div className="font-medium">{viewing.estado ?? "En Proceso"}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Fecha creación</div>
-                    <div className="font-medium">{new Date(viewing.fecha_creacion).toLocaleString("es-ES")}</div>
+                    <div className="font-medium">{new Date(viewing.fecha_solicitud).toLocaleString("es-ES")}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Última edición</div>
-                    <div className="font-medium">{viewing.fecha_edicion ? new Date(viewing.fecha_edicion).toLocaleString("es-ES") : "—"}</div>
+                    <div className="font-medium">{viewing.ultima_modificacion ? new Date(viewing.ultima_modificacion).toLocaleString("es-ES") : "—"}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Va dirigida</div>
@@ -429,14 +462,14 @@ export default function Solicitudes() {
                   </div>
                   <div className="md:col-span-2">
                     <div className="text-xs text-muted-foreground">Motivo</div>
-                    <div className="font-medium break-words">{viewing.motivo ?? "—"}</div>
+                    <div className="font-medium break-words">{viewing.razon ?? "—"}</div>
                   </div>
-                  <div className="md:col-span-2">
+ {/*                  <div className="md:col-span-2">
                     <div className="text-xs text-muted-foreground">Archivo</div>
                     <div className="font-medium">
                       {viewing.link ? <a href={viewing.link} target="_blank" rel="noreferrer" className="text-primary underline break-words">{viewing.link}</a> : "—"}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">No se encontró la solicitud.</div>
@@ -452,13 +485,34 @@ export default function Solicitudes() {
                   {solicitudArchivo ? `Cargar archivo para ${solicitudArchivo.nombre} ${solicitudArchivo.apellido}` : "Cargar archivo"}
                 </DialogTitle>
               </DialogHeader>
-              {/* Aquí va el formulario de carga de archivo */}
               <div className="space-y-3">
                 <>
                   {!isGoogleAuth && <div className="text-xs text-yellow-600 mb-2">⚠️ Se pedirá autorización de Google Drive</div>}
-                  <Input type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} />
+                  <Input type="file" accept="application/pdf"onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+
+                    if (file) {
+                      const isPDF =
+                        file.type === "application/pdf" ||
+                        file.name.toLowerCase().endsWith(".pdf");
+
+                      if (!isPDF) {
+                        toast({
+                          title: "Archivo inválido",
+                          description: "Solo se permiten archivos PDF.",
+                          variant: "destructive",
+                        });
+                        setPdfFile(null);
+                        return;
+                      }
+
+                      setPdfFile(file);
+                    } else {
+                      setPdfFile(null);
+                    }
+                  }} 
+                  />
                 </>
-                {/* Puedes agregar campos adicionales si lo necesitas */}
               </div>
               <DialogFooter>
                 <Button variant="secondary" onClick={() => setOpenArchivo(false)}>Cancelar</Button>
@@ -471,6 +525,52 @@ export default function Solicitudes() {
             </DialogContent>
           </Dialog>
 
+          {/* Modal de rechazo */}
+          <Dialog open={openRechazo} onOpenChange={setOpenRechazo}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Rechazar solicitud</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Estás rechazando la solicitud de <strong>{rechazoSolicitud?.nombre} {rechazoSolicitud?.apellido}</strong>. Por favor, indica el motivo del rechazo:
+                </p>
+                <textarea
+                  className="w-full border rounded p-2 text-sm"
+                  rows={4}
+                  value={rechazoMotivo}
+                  onChange={(e) => setRechazoMotivo(e.target.value)}
+                  placeholder="Escribe el motivo aquí..."
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setOpenRechazo(false)}>Cancelar</Button>
+                <Button
+                  disabled={!rechazoMotivo.trim()}
+                  onClick={async () => {
+                    if (!rechazoSolicitud) return;
+                    const { error } = await supabase
+                      .from("certificaciones_solicitudes")
+                      .update({ estado: "Rechazada", razon: rechazoMotivo.trim() })
+                      .eq("id", rechazoSolicitud.id);
+                    if (error) {
+                      toast({ title: "Error al rechazar", description: error.message });
+                    } else {
+                      toast({ title: "Solicitud rechazada" });
+                      setOpenRechazo(false);
+                      setRechazoMotivo("");
+                      setRechazoSolicitud(null);
+                      qc.invalidateQueries({ queryKey: ["solicitudes"] });
+                    }
+                  }}
+                >
+                  Confirmar rechazo
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+              
           <div className="mt-4">
             <Pagination>
               <PaginationContent>
