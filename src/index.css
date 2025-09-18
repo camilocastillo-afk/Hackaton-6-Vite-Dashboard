@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilo tipo Notion: minimalista, neutro, centrado en contenido */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* LIGHT */
+    --background: 0 0% 100%;
+    --foreground: 222 9% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 9% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 9% 20%;
+
+    --primary: 222 63% 52%; /* azul suave */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 16% 96%;
+    --secondary-foreground: 222 9% 20%;
+
+    --muted: 210 16% 96%;
+    --muted-foreground: 215 16% 45%;
+
+    --accent: 210 16% 96%;
+    --accent-foreground: 222 9% 20%;
+
+    --destructive: 0 72% 46%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 14% 92%;
+    --input: 220 14% 92%;
+    --ring: 222 63% 52%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 9% 20%;
+    --sidebar-primary: 222 63% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 16% 96%;
+    --sidebar-accent-foreground: 222 9% 20%;
+    --sidebar-border: 220 14% 92%;
+    --sidebar-ring: 222 63% 52%;
+
+    /* Chart palette - high contrast */
+    --chart-1: 221 83% 60%; /* blue */
+    --chart-2: 158 64% 52%; /* green */
+    --chart-3: 291 64% 62%; /* purple */
+    --chart-4: 0 72% 55%;   /* red */
+    --chart-5: 43 92% 62%;  /* amber */
+    --chart-6: 199 89% 55%; /* cyan */
+    --chart-7: 28 90% 60%;  /* orange */
+    --chart-8: 340 82% 60%; /* pink */
+  }
+
+  .dark {
+    /* DARK */
+    --background: 220 7% 8%;
+    --foreground: 220 5% 92%;
+
+    --card: 220 7% 10%;
+    --card-foreground: 220 5% 92%;
+
+    --popover: 220 7% 10%;
+    --popover-foreground: 220 5% 92%;
+
+    --primary: 222 63% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 7% 14%;
+    --secondary-foreground: 220 5% 92%;
+
+    --muted: 220 7% 14%;
+    --muted-foreground: 220 5% 65%;
+
+    --accent: 220 7% 14%;
+    --accent-foreground: 220 5% 92%;
+
+    --destructive: 0 70% 40%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 7% 18%;
+    --input: 220 7% 18%;
+    --ring: 222 63% 52%;
+
+    --sidebar-background: 220 7% 8%;
+    --sidebar-foreground: 220 5% 92%;
+    --sidebar-primary: 222 63% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 7% 14%;
+    --sidebar-accent-foreground: 220 5% 92%;
+    --sidebar-border: 220 7% 14%;
+    --sidebar-ring: 222 63% 52%;
+
+    /* Chart palette (dark) - high contrast */
+    --chart-1: 221 83% 60%; /* blue */
+    --chart-2: 158 64% 52%; /* green */
+    --chart-3: 291 64% 62%; /* purple */
+    --chart-4: 0 72% 55%;   /* red */
+    --chart-5: 43 92% 62%;  /* amber */
+    --chart-6: 199 89% 55%; /* cyan */
+    --chart-7: 28 90% 60%;  /* orange */
+    --chart-8: 340 82% 60%; /* pink */
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    /* Sin fondos decorativos: enfoque en el contenido */
+  }
+
+  h1 { @apply text-3xl md:text-4xl font-semibold; }
+  h2 { @apply text-2xl md:text-3xl font-semibold; }
+  h3 { @apply text-xl md:text-2xl font-medium; }
+}
+
+@layer utilities {
+  .notion-container { @apply max-w-6xl mx-auto px-6; }
+  .notion-card { @apply bg-card border rounded-lg; }
+}
