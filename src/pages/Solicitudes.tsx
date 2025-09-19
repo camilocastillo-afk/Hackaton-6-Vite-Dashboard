@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { CalendarIcon, Eye, Pencil, Download, BadgePlus } from "lucide-react";
 
@@ -26,13 +27,15 @@ interface Solicitud {
   correo: string;
   telefono: string;
   fecha_solicitud: string;
+  ultima_modificacion: string;
   va_dirigida: boolean;
   nombre_destinatario: string;
   incluir_salario: boolean;
   incluir_extras: boolean;
-  detalle_extras: string;
+  razon: string;
   incluir_funciones: boolean;
   estado: string;
+  area: string;
   user_id: string;
 }
 
@@ -63,6 +66,7 @@ export default function Solicitudes() {
   const [solicitudArchivo, setSolicitudArchivo] = useState<Solicitud | null>(null);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);
   const { toast } = useToast();
+  const { isAdmin } = useUserRoles();
   const qc = useQueryClient();
   const GOOGLE_CLIENT_ID = '288076817215-4252kpp15bp5fh96321dlanqk6vp35cu.apps.googleusercontent.com';
 // Estado para modal de rechazo
@@ -247,6 +251,21 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
     }
   }
 
+  const updateEstado = async (solicitud: Solicitud, estado: string) => {
+    try {
+      const { error } = await supabase
+        .from("certificaciones_solicitudes")
+        .update({ estado })
+        .eq("id", solicitud.id);
+
+      if (error) throw error;
+
+      toast({ title: "Actualizado", description: `Nuevo estado: ${estado}` });
+      qc.invalidateQueries({ queryKey: ["solicitudes"] });
+    } catch (e: any) {
+      toast({ title: "Error al actualizar", description: e.message });
+    }
+  };
 
 
   return (
@@ -335,7 +354,6 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                   <TableHead>Última edición</TableHead>
                   <TableHead>Solicitante</TableHead>
                   <TableHead>Estado</TableHead>
-{/*                   <TableHead>Motivo</TableHead> */}
                   <TableHead>Archivo</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -344,12 +362,13 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                 {rows.map((r) => {
                   const nombreCompleto = `${r.nombre} ${r.apellido}`;
                   const fecha = new Date(r.fecha_solicitud).toLocaleString("es-ES");
+                  const modified = new Date(r.ultima_modificacion).toLocaleDateString("es-ES");
                   const finalizado = r.estado === "Procesada" || r.estado === "Rechazada";
                   return (
                     <TableRow key={r.id}>
                       <TableCell>{r.id}</TableCell>
                       <TableCell>{fecha}</TableCell>
-                      <TableCell>—</TableCell>
+                      <TableCell>{modified.split('/')[2] !== "1969" ? modified : "-" }</TableCell>
                       <TableCell>{nombreCompleto}</TableCell>
                       <TableCell>
                         <div className="bg-transparent border-0 p-0 m-0">
@@ -430,7 +449,33 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Estado</div>
-                    <div className="font-medium">{viewing.estado ?? "En Proceso"}</div>
+                    <div className="font-medium"> 
+                      {isAdmin ? (
+                        <select
+                          className="bg-transparent border-none p-1 text-sm text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none"
+                          value={viewing.estado ?? ""}
+                          onChange={(e) => {
+                            const selected = e.target.value;
+                            if (selected === "Rechazada") {
+                              setRechazoSolicitud(viewing); 
+                              setOpenRechazo(true);
+                            } else {
+                              updateEstado(viewing, selected);
+                              setViewing((prev) => prev ? { ...prev, estado: selected } : prev); 
+                            }
+                          }}
+                        >
+                          {viewing.estado === undefined && (
+                            <option value="" disabled>Selecciona un estado</option>
+                          )}
+                          <option value="Procesada">Procesada</option>
+                          <option value="En Progreso">En progreso</option>
+                          <option value="Rechazada">Rechazada</option>
+                        </select>
+                    ) : (
+                      viewing.estado ?? "En Proceso"
+                    )}
+                  </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Fecha creación</div>
@@ -464,12 +509,6 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                     <div className="text-xs text-muted-foreground">Motivo</div>
                     <div className="font-medium break-words">{viewing.razon ?? "—"}</div>
                   </div>
- {/*                  <div className="md:col-span-2">
-                    <div className="text-xs text-muted-foreground">Archivo</div>
-                    <div className="font-medium">
-                      {viewing.link ? <a href={viewing.link} target="_blank" rel="noreferrer" className="text-primary underline break-words">{viewing.link}</a> : "—"}
-                    </div>
-                  </div> */}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">No se encontró la solicitud.</div>
@@ -553,6 +592,8 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                       .from("certificaciones_solicitudes")
                       .update({ estado: "Rechazada", razon: rechazoMotivo.trim() })
                       .eq("id", rechazoSolicitud.id);
+
+                    setViewing((prev) => prev ? { ...prev, estado: "Rechazada" } : prev); 
                     if (error) {
                       toast({ title: "Error al rechazar", description: error.message });
                     } else {
