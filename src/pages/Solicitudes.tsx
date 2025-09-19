@@ -18,6 +18,7 @@ import { CalendarIcon, Eye, Pencil, Download, BadgePlus } from "lucide-react";
 import { format } from "date-fns";
 import { get } from "http";
 import { verifyAccessToken } from "@/components/googleTokenVerify";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 
 interface Solicitud {
@@ -241,8 +242,9 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
 
       const modifyStatus = await supabase.from('certificaciones_solicitudes').update({ estado: 'Procesada' }).eq('id', solicitud.id);
 
-      toast({title: 'Hecho', description: "Archivo subido correctamente con ID: " + data.id});
+      qc.invalidateQueries({ queryKey: ["solicitudes"] });
 
+      toast({title: 'Hecho', description: "Archivo subido correctamente con ID: " + data.id});
 
       setOpenArchivo(false);
     } catch (e: any) {
@@ -267,6 +269,11 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
     }
   };
 
+  useEffect(() => {
+    if (viewing && rechazoMotivo) {
+      setViewing((prev) => prev ? { ...prev, razon: rechazoMotivo } : prev);
+    }
+  }, [rechazoMotivo]);
 
   return (
     <div className="mx-auto max-w-7xl p-4 space-y-4">
@@ -426,7 +433,7 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
 
           {/* Modal de detalle de solicitud */}
           <Dialog open={openView} onOpenChange={(o) => setOpenView(o)}>
-            <DialogContent>
+            <DialogContent aria-describedby={undefined}>
               <DialogHeader>
                 <DialogTitle>Detalle de la solicitud</DialogTitle>
               </DialogHeader>
@@ -505,9 +512,13 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                     <div className="text-xs text-muted-foreground">Incluir funciones</div>
                     <div className="font-medium">{viewing.incluir_funciones ? "Sí" : "No"}</div>
                   </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Area</div>
+                    <div className="font-medium">{viewing.area || "-"}</div>
+                  </div>
                   <div className="md:col-span-2">
                     <div className="text-xs text-muted-foreground">Motivo</div>
-                    <div className="font-medium break-words">{viewing.razon ?? "—"}</div>
+                    <div className="font-medium break-words">{viewing.razon || "-"}</div>
                   </div>
                 </div>
               ) : (

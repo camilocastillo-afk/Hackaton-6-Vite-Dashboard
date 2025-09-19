@@ -1,73 +1,100 @@
-# Welcome to your Lovable project
+# RRHH Bewe — Gestión de Solicitudes (Interno)
 
-## Project info
+> **Proyecto privado — Uso interno**  
+> Aplicación web para gestionar solicitudes de certificados laborales, almacenamiento de archivos en Google Drive y flujo de estados para el equipo de RRHH.
 
-**URL**: https://lovable.dev/projects/ceb362ee-75e1-4376-855d-f59a76e3b62e
+---
 
-## How can I edit this code?
+## 🧭 Resumen
+RRHH Bewe es una aplicación interna para la gestión de solicitudes de certificados laborales. Provee interfaces para empleados y administradores: creación de solicitudes, revisión, rechazo con motivo, subida de archivos (Google Drive) y marcación como procesada. Interfaz minimalista tipo Notion para facilitar adopción.
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🧩 Características principales
+- Gestión de solicitudes (crear, ver detalle, filtrar).
+- Roles: **Usuario** y **Administrador** (control de accesos y permisos).
+- Rechazo de solicitudes con motivo (modal de confirmación).
+- Carga de archivos PDF a **Google Drive** y marcado automático de solicitud como `Procesada`.
+- Filtros por estado, nombre y rango de fechas.
+- Dashboard y métricas básicas (Home).
+- Cache y sincronización con **React Query**.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ceb362ee-75e1-4376-855d-f59a76e3b62e) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠 Tecnología
+- Frontend: **React + TypeScript**
+- Bundler: **Vite**
+- UI primitives: **Radix UI / shadcn/ui**, **TailwindCSS**
+- Estado/server-state: **@tanstack/react-query**
+- Backend-as-a-Service: **Supabase** (DB + Auth)
+- Integración Drive: **Google Drive API** (OAuth / token flow)
+- Otras: `react-router-dom`, `recharts`, `react-hook-form`
 
-**Use your preferred IDE**
+(Detalles de dependencias en `package.json`.)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 📦 Requisitos
+- Node >= 18
+- Cuenta/instancia de Supabase con la tabla `certificaciones_solicitudes`
+- Google Cloud Project + credenciales OAuth (Drive API habilitada)
+- Acceso a credenciales privadas de la empresa (no subir a repos públicos)
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## ⚙️ Instalación (desarrollo)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+1. Clonar el repo:
+   ```bash
+   git clone git@github.com:tu-org/tu-repo.git
+   cd tu-repo
 
-# Step 3: Install the necessary dependencies.
-npm i
+2. Instalar dependencias:
+   ```bash
+   npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+3. Crear `.env.local` (ejemplo)
+   ```env
+   VITE_SUPABASE_URL=https://your-supabase-url.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   # (otros secrets internos) 
 
-**Edit a file directly in GitHub**
+4. Ejecutar en desarrollo
+   ```bash
+   npm run dev
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+5. Build de producción
+   ```bash
+   npm run build
+   npm run preview
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Variables de entorno (mínimas)
+- `VITE_SUPABASE_URL` — URL del proyecto Supabase  
+- `VITE_SUPABASE_ANON_KEY` — Key pública/anon (frontend)  
+- `VITE_GOOGLE_CLIENT_ID` — Cliente OAuth para Drive API  
+- *(Agregar otras variables internas según despliegue: `BACKEND_API`, `SENTRY_DSN`, etc.)*  
 
-## What technologies are used for this project?
+> ⚠️ **Importante**: no commitear credenciales. Usar secret management del entorno (Vault, GitHub Actions Secrets, etc.).
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Flujo de estados de solicitudes
+- **En proceso** → estado inicial al crear la solicitud.  
+- **Procesada** → cuando se adjunta archivo o el admin marca como completada.  
+- **Rechazada** → requiere motivo obligatorio, se gestiona vía modal.
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/ceb362ee-75e1-4376-855d-f59a76e3b62e) and click on Share -> Publish.
+# Licencia
 
-## Can I connect a custom domain to my Lovable project?
+Este proyecto es **software propietario** y de uso interno exclusivo de la empresa.  
 
-Yes, you can!
+- No se permite la copia, distribución, sublicencia ni modificación fuera de la organización sin autorización escrita.  
+- El acceso al código fuente está restringido únicamente al equipo autorizado.  
+- Cualquier uso no autorizado, parcial o total, será considerado una violación a los términos de esta licencia.  
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+© 2025 Bewe Software. Todos los derechos reservados.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
