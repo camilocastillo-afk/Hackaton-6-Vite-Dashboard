@@ -516,10 +516,10 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                     <div className="text-xs text-muted-foreground">Area</div>
                     <div className="font-medium">{viewing.area || "-"}</div>
                   </div>
-                  <div className="md:col-span-2">
+                  {!viewing.razon || <div className="md:col-span-2">
                     <div className="text-xs text-muted-foreground">Motivo</div>
                     <div className="font-medium break-words">{viewing.razon || "-"}</div>
-                  </div>
+                  </div>}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">No se encontró la solicitud.</div>

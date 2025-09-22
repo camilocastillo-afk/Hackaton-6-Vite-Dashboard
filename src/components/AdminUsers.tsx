@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,9 @@ interface UserWithRoles extends ProfileRow {
 }
 
 export default function AdminUsers() {
-  useEffect(() => {
-    document.title = "Administración — RRHH Bewe";
-  }, []);
-
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 7;
 
   // Crear usuario (modal)
   const [createOpen, setCreateOpen] = useState(false);
@@ -109,11 +105,9 @@ export default function AdminUsers() {
     }
     setCreating(true);
     try {
-      console.log("Enviando datos:", { email, password, display_name: displayName || null, roles: selectedRoles });
       const { data, error } = await supabase.functions.invoke("admin-create-user", {
         body: { email, password, display_name: displayName || null, roles: selectedRoles },
       });
-      console.log("Respuesta función:", { data, error });
       if (error) throw error;
       toast.success("Usuario creado correctamente");
       setCreateOpen(false);
@@ -173,85 +167,95 @@ export default function AdminUsers() {
     }
   };
 
-  // Header content similar to Employees
+
+  const deleteUsuario = async () => {
+    if (!editUser) return;
+    setSavingEdit(true);
+    const { error } = await supabase.from("profiles").delete().eq("id", editUser.id);
+    if (error) throw error;
+    toast.success("Usuario eliminado");
+    setEditOpen(false);
+    setEditUser(null);
+    await refetch();
+    setSavingEdit(false);
+  }
+
   const header = useMemo(() => (
     <div className="flex items-center justify-between">
-      <h1 className="text-xl font-semibold">Administración de usuarios</h1>
-      <Button onClick={() => setCreateOpen(true)}>
-        <Plus className="mr-2 h-4 w-4" /> Crear usuario
-      </Button>
+      <h2 className="text-xl font-semibold">Administración de Usuarios</h2>
     </div>
   ), []);
 
   return (
-    <div className="min-h-screen notion-container py-8">
-      <div className="space-y-6">
-        {header}
-
-        <Card className="notion-card">
-          <CardContent className="pt-6 space-y-6">
-            {/* Filtros */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2 md:col-span-2">
-                <Label>Buscar</Label>
-                <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Nombre o correo" />
-              </div>
-              <div className="flex items-end">
-                <Button variant="secondary" className="w-full" onClick={() => refetch()}>Refrescar</Button>
-              </div>
+    <div className="space-y-6">
+      <Card className="notion-card">
+        <CardContent className="pt-6 space-y-6">
+          {header}
+          
+          {/* Filtros */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2 md:col-span-2">
+              <Label>Buscar</Label>
+              <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Nombre o correo" />
             </div>
+            <div className="flex items-end gap-x-4">
+              <Button variant="secondary" className="w-full" onClick={() => refetch()}>Refrescar</Button>
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Crear usuario
+              </Button>
+            </div>
+          </div>
 
-            {/* Tabla */}
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Correo</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead className="text-right w-[120px]">Acciones</TableHead>
+          {/* Tabla */}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Correo</TableHead>
+                  <TableHead>Roles</TableHead>
+                  <TableHead className="text-right w-[120px]">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && (
+                  <TableRow><TableCell colSpan={4}>Cargando...</TableCell></TableRow>
+                )}
+                {!isLoading && users.length === 0 && (
+                  <TableRow><TableCell colSpan={4}>Sin resultados</TableCell></TableRow>
+                )}
+                {users.map((u) => (
+                  <TableRow key={u.id} className="hover:bg-muted/40">
+                    <TableCell>{u.display_name || "—"}</TableCell>
+                    <TableCell>{u.email}</TableCell>
+                    <TableCell>{u.roles.length ? u.roles.join(", ") : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="secondary" onClick={() => openEdit(u)} aria-label="Editar roles">
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && (
-                    <TableRow><TableCell colSpan={4}>Cargando...</TableCell></TableRow>
-                  )}
-                  {!isLoading && users.length === 0 && (
-                    <TableRow><TableCell colSpan={4}>Sin resultados</TableCell></TableRow>
-                  )}
-                  {users.map((u) => (
-                    <TableRow key={u.id} className="hover:bg-muted/40">
-                      <TableCell>{u.display_name || "—"}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>{u.roles.length ? u.roles.join(", ") : "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="secondary" onClick={() => openEdit(u)} aria-label="Editar roles">
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-            {/* Paginación */}
-            <Pagination className="pt-2">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }} />
-                </PaginationItem>
-                <PaginationItem>
-                  <span className="px-3 text-sm text-muted-foreground">Página {page} de {Math.max(1, totalPages)}</span>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)); }} />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Paginación */}
+          <Pagination className="pt-2">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }} />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="px-3 text-sm text-muted-foreground">Página {page} de {Math.max(1, totalPages)}</span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)); }} />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </CardContent>
+      </Card>
 
       {/* Modal Crear Usuario */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -318,6 +322,9 @@ export default function AdminUsers() {
             </div>
           </div>
           <DialogFooter>
+            <div className="flex-grow">
+              <Button variant="destructive" onClick={deleteUsuario} disabled={savingEdit}>{savingEdit ? "Eliminando..." : "Eliminar usuario"}</Button>
+            </div>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button onClick={saveEdit} disabled={savingEdit}>{savingEdit ? "Guardando..." : "Guardar"}</Button>
           </DialogFooter>
@@ -326,3 +333,5 @@ export default function AdminUsers() {
     </div>
   );
 }
+
+

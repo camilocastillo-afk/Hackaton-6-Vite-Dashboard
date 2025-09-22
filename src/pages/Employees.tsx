@@ -27,7 +27,7 @@ export default function Employees() {
   const qc = useQueryClient();
   const [filters, setFilters] = useState({ nombres: "", apellidos: "", correo: "", telefono: "" });
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 7;
 
   useEffect(() => { document.title = "Empleados — RRHH Bewe"; }, []);
   useEffect(() => { setPage(1); }, [filters]);
@@ -153,7 +153,7 @@ export default function Employees() {
   ), []);
 
   return (
-    <div className="min-h-screen notion-container py-8">
+    <div className="min-h-screen notion-container pt-8">
       <div className="space-y-6">
         {headerTitle}
 

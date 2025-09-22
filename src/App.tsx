@@ -11,7 +11,7 @@ import { RequireAuth } from "./components/RequireAuth";
 import AppLayout from "./components/AppLayout";
 import Home from "./pages/Home";
 import Solicitudes from "./pages/Solicitudes";
-import AdminUsers from "./pages/AdminUsers";
+import Admin from "./pages/Admin";
 import { RequireRole } from "./components/RequireRole";
 import { ThemeProvider } from "next-themes";
 
@@ -34,7 +34,7 @@ const App = () => (
               <Route path="/home" element={<Home />} />
               <Route path="/empleados" element={<Employees />} />
               <Route path="/solicitudes" element={<Solicitudes />} />
-              <Route path="/admin" element={<RequireRole roles={["admin"]}><AdminUsers /></RequireRole>} />
+              <Route path="/admin" element={<RequireRole roles={["admin"]}><Admin /></RequireRole>} />
             </Route>
 
             {/* Catch-all */}
