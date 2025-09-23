@@ -13,12 +13,13 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { CalendarIcon, Eye, Pencil, Download, BadgePlus } from "lucide-react";
+import { CalendarIcon, Eye, Pencil, Download, BadgePlus, FileDown } from "lucide-react";
 
 import { format } from "date-fns";
 import { get } from "http";
 import { verifyAccessToken } from "@/components/googleTokenVerify";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import capitalizeFirstLetter from "@/utils/text";
 
 
 interface Solicitud {
@@ -38,12 +39,12 @@ interface Solicitud {
   estado: string;
   area: string;
   user_id: string;
+  tipo_solicitud: string;
+  archivo: string | null;
 }
 
-interface Empleado { id: string; nombres: string; apellidos: string; telefono?: string; }
-
 const PAGE_SIZE = 10;
-const estados = ["En proceso", "Procesada", "Rechazada"] as const;
+const estados = ["En Progreso", "Completado", "Rechazada"] as const;
 
 export default function Solicitudes() {
   const [page, setPage] = useState(1);
@@ -51,17 +52,15 @@ export default function Solicitudes() {
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-
   const [openEdit, setOpenEdit] = useState(false);
   const [editing, setEditing] = useState<Solicitud | null>(null);
-  const [newEstado, setNewEstado] = useState<string>("En proceso");
-  const [motivo, setMotivo] = useState("");
-  const [link, setLink] = useState("");
+  const [newEstado, setNewEstado] = useState<string>("En Progreso");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [viewing, setViewing] = useState<any>(null);
   const [loadingView, setLoadingView] = useState(false);
+
   // Estado para el modal de archivo
   const [openArchivo, setOpenArchivo] = useState(false);
   const [solicitudArchivo, setSolicitudArchivo] = useState<Solicitud | null>(null);
@@ -69,14 +68,11 @@ export default function Solicitudes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRoles();
   const qc = useQueryClient();
-  const GOOGLE_CLIENT_ID = '288076817215-4252kpp15bp5fh96321dlanqk6vp35cu.apps.googleusercontent.com';
-// Estado para modal de rechazo
-const [openRechazo, setOpenRechazo] = useState(false);
-const [rechazoMotivo, setRechazoMotivo] = useState("");
-const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null);
 
-
-
+  // Estado para modal de rechazo
+  const [openRechazo, setOpenRechazo] = useState(false);
+  const [rechazoMotivo, setRechazoMotivo] = useState("");
+  const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null);
 
   useEffect(() => {
     document.title = "RRHH Bewe — Gestión de solicitudes";
@@ -113,15 +109,6 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
     },
   });
 
-  const onOpenEdit = (s: Solicitud) => {
-    setEditing(s);
-    setNewEstado(s.estado ?? "En proceso");
-    setMotivo("");
-    setLink("");
-    setPdfFile(null);
-    setOpenEdit(true);
-  };
-
   const onOpenView = async (s: Solicitud) => {
     setViewing(null);
     setOpenView(true);
@@ -129,7 +116,7 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
     try {
       const { data, error } = await supabase
         .from("certificaciones_solicitudes")
-        .select("*")
+        .select("*, area:areas(id, nombre)")
         .eq("id", s.id)
         .single();
       if (error) throw error;
@@ -182,7 +169,6 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
   const openAddFile = (s: Solicitud) => {
     setSolicitudArchivo(s);
     setPdfFile(null);
-    setLink("");
     setOpenArchivo(true);
   };
 
@@ -240,7 +226,7 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
       if (!response.ok) throw new Error('Error al subir archivo');
       const data = await response.json();
 
-      const modifyStatus = await supabase.from('certificaciones_solicitudes').update({ estado: 'Procesada' }).eq('id', solicitud.id);
+      const modifyStatus = await supabase.from('certificaciones_solicitudes').update({ estado: 'Completado' }).eq('id', solicitud.id);
 
       qc.invalidateQueries({ queryKey: ["solicitudes"] });
 
@@ -292,9 +278,8 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
               </SelectTrigger>
               <SelectContent className="z-50">
                 <SelectItem value="__ALL__">Todos</SelectItem>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                <SelectItem value="En proceso">En proceso</SelectItem>
-                <SelectItem value="Procesada">Procesada</SelectItem>
+                <SelectItem value="En Progreso">En Progreso</SelectItem>
+                <SelectItem value="Completado">Completado</SelectItem>
                 <SelectItem value="Rechazada">Rechazada</SelectItem>
               </SelectContent>
             </Select>
@@ -358,8 +343,8 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                 <TableRow>
                   <TableHead>#</TableHead>
                   <TableHead>Fecha</TableHead>
-                  <TableHead>Última edición</TableHead>
                   <TableHead>Solicitante</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Archivo</TableHead>
                   <TableHead>Acciones</TableHead>
@@ -370,13 +355,13 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                   const nombreCompleto = `${r.nombre} ${r.apellido}`;
                   const fecha = new Date(r.fecha_solicitud).toLocaleString("es-ES");
                   const modified = new Date(r.ultima_modificacion).toLocaleDateString("es-ES");
-                  const finalizado = r.estado === "Procesada" || r.estado === "Rechazada";
+                  const finalizado = r.estado === "Completado" || r.estado === "Rechazada";
                   return (
                     <TableRow key={r.id}>
                       <TableCell>{r.id}</TableCell>
                       <TableCell>{fecha}</TableCell>
-                      <TableCell>{modified.split('/')[2] !== "1969" ? modified : "-" }</TableCell>
                       <TableCell>{nombreCompleto}</TableCell>
+                      <TableCell>{capitalizeFirstLetter(r.tipo_solicitud) || '-'}</TableCell>
                       <TableCell>
                         <div className="bg-transparent border-0 p-0 m-0">
                           <select
@@ -385,20 +370,22 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                             onChange={(e) => {
                               const selected = e.target.value;
                               if (selected === "Rechazada") {
-                                setRechazoSolicitud(r);
+                                setRechazoSolicitud(viewing); 
                                 setOpenRechazo(true);
                               } else {
-                                setNewEstado(selected);
+                                updateEstado(r, selected);
+                                setViewing((prev) => prev ? { ...prev, estado: selected } : prev); 
                               }
                             }}
-                            disabled={r.estado === 'Procesada' || r.estado === 'Rechazada'}
+                            disabled={r.estado === 'Completado' || r.estado === 'Rechazada'}
                           >
                             {r.estado === undefined && (
                               <option value="" disabled>Selecciona un estado</option>
                             )}
-                            {r.estado === 'Procesada' && (
-                              <option value="Procesada" disabled>Procesada</option>
+                            {r.estado === 'Completado' && (
+                              <option value="Completado" disabled>Completado</option>
                             )}
+                            {['cumpleaños', 'vacaciones'].includes(r.tipo_solicitud) && (<option value="Completado">Completado</option>)}
                             <option value="En Progreso">En progreso</option>
                             <option value="Rechazada">Rechazada</option>
                           </select>
@@ -406,9 +393,12 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={r.estado === 'Procesada' || r.estado === 'Rechazada'} title={r.estado === 'Procesada' ? 'Esta solicitud ya fue procesada' : 'Agregar archivo'}>
+                          {r.estado === "Completado" || ['cumpleaños'].includes(r.tipo_solicitud) ? (
+                            <Button size='sm' variant={r.archivo != null ? 'link' : 'ghost'} onClick={() => window.location.href =`${r.archivo}`} disabled={r.archivo === null}><FileDown className="h-4 w-4"/></Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={["cumpleaños", "vacaciones"].includes(r.tipo_solicitud) || ["Completado", "Rechazada"].includes(r.estado)} title={r.estado === 'Completado' ? 'Esta solicitud ya fue Completado' : 'Agregar archivo'}>
                             <BadgePlus className="h-4 w-4" />
-                          </Button>
+                          </Button>)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -451,9 +441,10 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                     <div className="font-medium">{viewing.nombre} {viewing.apellido}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Teléfono</div>
-                    <div className="font-medium">{viewing.telefono}</div>
+                    <div className="text-xs text-muted-foreground">Tipo de Solicitud</div>
+                    <div className="font-medium">{capitalizeFirstLetter(viewing.tipo_solicitud)}</div>
                   </div>
+
                   <div>
                     <div className="text-xs text-muted-foreground">Estado</div>
                     <div className="font-medium"> 
@@ -475,12 +466,12 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                           {viewing.estado === undefined && (
                             <option value="" disabled>Selecciona un estado</option>
                           )}
-                          <option value="Procesada">Procesada</option>
+                          <option value="Completado">Completado</option>
                           <option value="En Progreso">En progreso</option>
                           <option value="Rechazada">Rechazada</option>
                         </select>
                     ) : (
-                      viewing.estado ?? "En Proceso"
+                      viewing.estado ?? "En Progreso"
                     )}
                   </div>
                   </div>
@@ -513,13 +504,25 @@ const [rechazoSolicitud, setRechazoSolicitud] = useState<Solicitud | null>(null)
                     <div className="font-medium">{viewing.incluir_funciones ? "Sí" : "No"}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Area</div>
-                    <div className="font-medium">{viewing.area || "-"}</div>
+                    <div className="text-xs text-muted-foreground">Archivo</div>
+                    <div className="font-medium">
+                      <Button size='sm' variant={viewing.archivo != null ? 'fullBlue' : 'fullGray'} onClick={() => window.location.href =`${viewing.archivo}`} disabled={viewing.archivo === null}>
+                        <FileDown className="h-4 w-4 mr-2"/>
+                      </Button>
+                    </div>
                   </div>
-                  {!viewing.razon || <div className="md:col-span-2">
+                  {!viewing.razon ||/*  (<div className=""></div>) : */ (<div className="md:col-span-2">
                     <div className="text-xs text-muted-foreground">Motivo</div>
                     <div className="font-medium break-words">{viewing.razon || "-"}</div>
-                  </div>}
+                  </div>)}
+                  <div>
+                    <div className="text-xs text-muted-foreground">Correo</div>
+                    <div className="font-medium">{viewing.correo}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Area</div>
+                    <div className="font-medium">{viewing.area?.nombre || "-"}</div>
+                  </div>
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">No se encontró la solicitud.</div>

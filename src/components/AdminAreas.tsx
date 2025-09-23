@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { set } from "date-fns";
 
 interface areasRow {
-     id: string;
+    id: string;
     nombre: string;
 }
 
@@ -26,21 +26,19 @@ export default function AdminAreas() {
     const [editOpen, setEditOpen] = useState(false);
     const [selected, setSelected] = useState<areasRow | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
-    const [empQuery, setEmpQuery] = useState("");
-    const [selectedEmpleadoId, setSelectedEmpleadoId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [areaName, setAreaName] = useState("");
 
     const { data, isLoading, error, refetch } = useQuery({
      queryKey: ["admin-areas"],
         queryFn: async (): Promise<areasRow[]> => {
-        // Traer solo jefes sin joins; esta tabla no tiene id propio
+
         const { data, error } = await supabase
             .from("areas")
-            .select(`id,nombre`);
+            .select(`*`);
     
       if (error) throw error;
-      // Supabase puede devolver arrays para relaciones si hay múltiples; normalizamos al primer elemento
+
       const normalized = (data as any[]).map((row) => ({
         id: row.id,
         nombre: row.nombre

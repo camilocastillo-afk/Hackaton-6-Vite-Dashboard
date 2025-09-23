@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -17,13 +17,15 @@ interface Solicitud {
   correo: string;
   telefono: string;
   fecha_solicitud: string;
+  ultima_modificacion: string;
   va_dirigida: boolean;
   nombre_destinatario: string;
   incluir_salario: boolean;
   incluir_extras: boolean;
-  detalle_extras: string;
+  razon: string;
   incluir_funciones: boolean;
   estado: string;
+  area: string;
   user_id: string;
 }
 
@@ -100,20 +102,20 @@ export default function Home() {
   const statusData = useMemo(() => {
     const counts: Record<string, number> = {
       "En Progreso": 0,
-      "Procesada": 0,
+      "Completado": 0,
       "Rechazada": 0,
     };
 
     (data || []).forEach((s) => {
       const estado = s.estado?.trim().toLowerCase();
-      if (estado === "procesada") counts["Procesada"] += 1;
+      if (estado === "completado") counts["Completado"] += 1;
       else if (estado === "rechazada") counts["Rechazada"] += 1;
       else counts["En Progreso"] += 1; // Default/fallback
     });
 
     return [
       { name: "En Progreso", value: counts["En Progreso"] },
-      { name: "Procesada", value: counts["Procesada"] },
+      { name: "Completado", value: counts["Completado"] },
       { name: "Rechazada", value: counts["Rechazada"] },
     ];
   }, [data]);
@@ -215,17 +217,17 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={{ total: { label: 'Solicitudes', color: 'hsl(var(--primary))' } }} className="h-64 w-full">
-              <BarChart data={barData}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="total" radius={[8,8,4,4]}>
-                  {barData.map((_, i) => (
-                    <Cell key={i} fill={colors[i % colors.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
+                <BarChart data={barData}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="total" radius={[8,8,4,4]}>
+                    {barData.map((_, i) => (
+                      <Cell key={i} fill={colors[i % colors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -234,21 +236,21 @@ export default function Home() {
           <CardHeader>
             <CardTitle>Estado general</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 flex items-center justify-center h-64">
             <ChartContainer className="h-64" config={{
               'En Progreso': { label: 'En Progreso', color: 'hsl(var(--chart-2))' },
-              Procesada: { label: 'Procesada', color: 'hsl(var(--chart-3))' },
+              Completado: { label: 'Completado', color: 'hsl(var(--chart-3))' },
               Rechazada: { label: 'Rechazada', color: 'hsl(var(--chart-4))' },
             }}>
-              <PieChart>
-                <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} paddingAngle={3} label>
-                  {statusData.map((_, i) => (
-                    <Cell key={i} fill={colors[i % colors.length]} />
-                  ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-              </PieChart>
+                <PieChart>
+                  <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} paddingAngle={3} label>
+                    {statusData.map((_, i) => (
+                      <Cell key={i} fill={colors[i % colors.length]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                </PieChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -278,14 +280,14 @@ export default function Home() {
           <CardHeader>
             <CardTitle>¿Va dirigida?</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 flex items-center justify-center h-64">
             <ChartContainer className="h-64" config={{
               Dirigida: { label: 'Dirigida', color: 'hsl(var(--chart-1))' },
               'No dirigida': { label: 'No dirigida', color: 'hsl(var(--chart-2))' },
               'Sin dato': { label: 'Sin dato', color: 'hsl(var(--chart-5))' },
-            }}>
+            }}>             
               <PieChart>
-                <Pie data={directedData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} paddingAngle={3} label>
+                <Pie data={directedData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={80} paddingAngle={3} label cx="50%" cy="50%">
                   {directedData.map((_, i) => (
                     <Cell key={i} fill={colors[i % colors.length]} />
                   ))}

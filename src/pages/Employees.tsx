@@ -21,6 +21,8 @@ interface Empleado {
   telefono: string;
   fecha_creacion: string;
   fecha_edicion: string;
+  cumpleanos: string;
+  dias_vacaciones: number;
 }
 
 export default function Employees() {
@@ -71,6 +73,8 @@ export default function Employees() {
           correo: payload.correo,
           telefono: payload.telefono,
           fecha_edicion: new Date().toISOString(),
+          cumpleanos: payload.cumpleanos ?? null,
+          dias_vacaciones: payload.dias_vacaciones ?? 0,
         }).eq("id", payload.id!);
         if (error) throw error;
       } else {
@@ -80,6 +84,10 @@ export default function Employees() {
           apellidos: payload.apellidos,
           correo: payload.correo,
           telefono: payload.telefono,
+          fecha_creacion: new Date().toISOString(),
+          fecha_edicion: new Date().toISOString(),
+          cumpleanos: payload.cumpleanos ?? null,
+          dias_vacaciones: payload.dias_vacaciones ?? 0
         });
         if (error) throw error;
 
@@ -138,6 +146,8 @@ export default function Employees() {
       apellidos: fd.get("apellidos")?.toString() ?? "",
       correo: fd.get("correo")?.toString() ?? "",
       telefono: phone,
+      cumpleanos: fd.get("cumpleanos")?.toString() ?? null,
+      dias_vacaciones: Number(fd.get("dias_vacaciones")?.toString() ?? "0"),
     };
     upsertEmpleado.mutate(payload);
     setModalOpen(false);
@@ -268,19 +278,27 @@ export default function Employees() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="nombres">Nombres</Label>
-                <Input id="nombres" name="nombres" defaultValue={editing?.nombres} />
+                <Input id="nombres" name="nombres" type='text' defaultValue={editing?.nombres} required pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$" title="Solo letras y espacios" />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="apellidos">Apellidos</Label>
-                <Input id="apellidos" name="apellidos" defaultValue={editing?.apellidos} required />
+                <Input id="apellidos" name="apellidos" type='text' defaultValue={editing?.apellidos} required pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$" title="Solo letras y espacios"/>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="correo">Correo</Label>
                 <Input id="correo" name="correo" type="email" defaultValue={editing?.correo} required />
               </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="correo">Cumpleaños</Label>
+                <Input id="cumpleanos" name="cumpleanos" type="date" defaultValue={editing?.cumpleanos} required />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="correo">Vacaciones</Label>
+                <Input id="dias_vacaciones" name="dias_vacaciones" type="number" defaultValue={editing?.dias_vacaciones} required />
+              </div>
             </div>
             <DialogFooter>
-              <Button type="submit">Guardar</Button>
+              <Button type="submit" >Guardar</Button>
             </DialogFooter>
           </form>
         </DialogContent>
