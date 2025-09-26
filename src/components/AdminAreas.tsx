@@ -128,7 +128,7 @@ export default function AdminAreas() {
             .from("jefes")
             .delete()
             .eq("area_id", selected.id);
-        if (error) toast.error("Error al eliminar el área");
+        if (jeferror) toast.error("Error al eliminar el área");
 
         toast.success("Área eliminada");
         await refetch();

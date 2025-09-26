@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext, PaginationLink } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Archive } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PhoneInput, PhoneDisplay } from "@/components/PhoneInput";
+import Papa from 'papaparse';
+import { Parser } from '@json2csv/plainjs';
 
 interface Empleado {
   id: string;
@@ -74,7 +76,7 @@ export default function Employees() {
           telefono: payload.telefono,
           fecha_edicion: new Date().toISOString(),
           cumpleanos: payload.cumpleanos ?? null,
-          dias_vacaciones: payload.dias_vacaciones ?? 0,
+          dias_vacaciones: payload.dias_vacaciones ?? null
         }).eq("id", payload.id!);
         if (error) throw error;
       } else {
@@ -87,7 +89,7 @@ export default function Employees() {
           fecha_creacion: new Date().toISOString(),
           fecha_edicion: new Date().toISOString(),
           cumpleanos: payload.cumpleanos ?? null,
-          dias_vacaciones: payload.dias_vacaciones ?? 0
+          dias_vacaciones: payload.dias_vacaciones ?? null
         });
         if (error) throw error;
 
@@ -132,20 +134,23 @@ export default function Employees() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Empleado> | null>(null);
   const [phone, setPhone] = useState<string>("");
+  const [imxportOpen, setImxportOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const startCreate = () => { setEditing(null); setPhone(""); setModalOpen(true); };
   const startEdit = (emp: Empleado) => { setEditing(emp); setPhone(emp.telefono); setModalOpen(true); };
+  const imxportBox = () => { setEditing(null); setImxportOpen(true); };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const payload: Partial<Empleado> = {
       id: editing?.id,
-      documento: Number(fd.get("documento")?.toString() ?? "0"),
+      documento: Number(fd.get("documento")?.toString() ?? null),
       nombres: fd.get("nombres")?.toString() ?? "",
       apellidos: fd.get("apellidos")?.toString() ?? "",
       correo: fd.get("correo")?.toString() ?? "",
-      telefono: phone,
+      telefono: phone ?? "",
       cumpleanos: fd.get("cumpleanos")?.toString() ?? null,
       dias_vacaciones: Number(fd.get("dias_vacaciones")?.toString() ?? "0"),
     };
@@ -158,9 +163,95 @@ export default function Employees() {
       <h1 className="text-xl font-semibold">Empleados</h1>
       <div className="flex items-center gap-2">
         <Button onClick={startCreate}><Plus className="mr-2 h-4 w-4" /> Nuevo</Button>
+        <Button onClick={imxportBox} variant="green"><Archive className="mr-2 h-4 w-4" /> Importar/Exportar</Button>
       </div>
     </div>
   ), []);
+
+  const [file, setFile] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const manageData = (action: 'import' | 'export', file?: File) => async () => {
+    if (action === 'import') {
+      if (!file) {
+        toast.error("Por favor, selecciona un archivo CSV para importar.");
+        return;
+      }
+      toast("Importando archivo CSV...");
+    
+      const text = await file.text();
+
+      const parsed = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+      });
+      
+      const empleados = parsed.data as any[]; 
+
+      console.log(empleados[0].cumpleanos);
+
+      empleados[0].cumpleanos = new Date(empleados[0].cumpleanos.split('/').reverse().join('-')).toISOString();
+
+      empleados.map((e) => {
+        if (!e.id || e.id.trim() === "") {
+          delete e.id;
+        }
+        e.fecha_creacion = e.fecha_creacion && e.fecha_creacion.trim() !== "" ? e.fecha_creacion : new Date().toISOString();
+        e.fecha_edicion = e.fecha_edicion && e.fecha_edicion.trim() !== "" ? e.fecha_edicion : new Date().toISOString();
+        e.area_id = e.area_id && e.area_id.trim() !== "" ? e.area_id : null;
+        e.cumpleanos && e.cumpleanos.trim() !== "" ? new Date(e.cumpleanos.split('/').reverse().join('-')).toISOString() : null;
+        e.dias_vacaciones = e.dias_vacaciones ? Number(e.dias_vacaciones) : null;
+      });
+
+      console.log("Empleados a importar:", empleados);
+
+      const { error } = await supabase.from('empleados').upsert(empleados, { onConflict: 'correo' });
+      if (error) {
+        toast.error("Error al importar el archivo: " + error.message);
+        return;
+      }
+      toast.success(`Importación completada. ${empleados?.length ?? 0} registros importados/actualizados.`);
+      qc.invalidateQueries({ queryKey: ["empleados"] });
+      setFile(null);
+      setImxportOpen(false);
+    } else if( action === 'export') {
+      toast("Generando archivo CSV...");
+
+      const { data: empleados, error } = await supabase.from('empleados').select('*').order('fecha_creacion', { ascending: false });
+      if (error) {
+        toast.error("Error al exportar los datos: " + error.message);
+        return;
+      }
+      if (!empleados || empleados.length === 0) {
+        toast.error("No hay datos para exportar.");
+        return;
+      }
+
+
+      const parser = new Parser();
+      const csv = parser.parse(empleados);
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link
+        .setAttribute('href', url);
+      link.setAttribute('download', `empleados_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`Exportación completada. ${empleados.length} registros exportados.`);
+      setImxportOpen(false);
+      setFile(null);
+    }
+  }
 
   return (
     <div className="min-h-screen notion-container pt-8">
@@ -290,17 +381,62 @@ export default function Employees() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="correo">Cumpleaños</Label>
-                <Input id="cumpleanos" name="cumpleanos" type="date" defaultValue={editing?.cumpleanos} required />
+                <Input id="cumpleanos" name="cumpleanos" type="date"  defaultValue={editing?.cumpleanos} required />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="correo">Vacaciones</Label>
-                <Input id="dias_vacaciones" name="dias_vacaciones" type="number" defaultValue={editing?.dias_vacaciones} required />
+                <Input id="dias_vacaciones" name="dias_vacaciones" type="number" defaultValue={editing?.dias_vacaciones} />
               </div>
             </div>
             <DialogFooter>
               <Button type="submit" >Guardar</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Importar/Exportar */}
+      <Dialog open={imxportOpen} onOpenChange={setImxportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar/Exportar empleados</DialogTitle>
+            <DialogDescription>Importa o exporta la información de los empleados.</DialogDescription>
+          </DialogHeader>
+          <div
+            onClick={() => document.getElementById("fileUpload")?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              const files = e.dataTransfer.files;
+              if (files && files[0]) {
+                setFile(files[0]); 
+              }
+            }}
+            className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-colors 
+              ${isDragging 
+                ? "border-blue-500 bg-blue-100 dark:bg-blue-900/30" 
+                : "border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }
+            `}
+          >
+            <input
+              type="file"
+              accept=".csv"
+              id="fileUpload"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {file ? `🗂️ ${file.name}` : "Arrastra un archivo o haz clic para subirlo"}
+            </p>
+          </div>
+          <Button variant="yellow" onClick={manageData('import', file)} className="mt-4">Importar CSV</Button> 
+          <Button variant="green" onClick={manageData('export', file)} className="mt-4">Exportar CSV</Button>
         </DialogContent>
       </Dialog>
     </div>

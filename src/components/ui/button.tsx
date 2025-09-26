@@ -22,6 +22,10 @@ const buttonVariants = cva(
           "w-full bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-400 px-4 py-3",
         fullGray:
           "w-full bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400 px-4 py-3",
+        green:
+          "bg-green-600 text-white hover:bg-green-700 focus:ring-green-400 px-4 py-2",
+        yellow:
+          "bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-green-400 px-4 py-2"
       },
       size: {
         default: "h-10 px-4 py-2",

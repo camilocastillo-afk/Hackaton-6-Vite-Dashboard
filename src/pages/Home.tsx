@@ -40,6 +40,7 @@ export default function Home() {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
 
+
   const getRange = () => {
     const now = new Date();
     const defaultStart = new Date(now);
@@ -63,17 +64,23 @@ export default function Home() {
       endDate ? endDate.toISOString() : null,
     ],
     queryFn: async () => {
-      const { start, end } = getRange();
-      const { data, error } = await supabase
+      let query = supabase
         .from("certificaciones_solicitudes")
-        .select("*")
-        .gte("fecha_solicitud", start.toISOString())
-        .lte("fecha_solicitud", endOfDay(end).toISOString());
+        .select("*");
+
+      if (startDate || endDate) {
+        const { start, end } = getRange();
+        query = query
+          .gte("fecha_solicitud", start.toISOString())
+          .lte("fecha_solicitud", endOfDay(end).toISOString());
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as Solicitud[];
     },
   });
-
+  
   const last7 = useMemo(() => {
     const { start, end } = getRange();
     const days: { label: string; dateKey: string }[] = [];

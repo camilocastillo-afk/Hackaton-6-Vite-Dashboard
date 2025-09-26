@@ -393,10 +393,10 @@ export default function Solicitudes() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          {r.estado === "Completado" || ['cumpleaños'].includes(r.tipo_solicitud) ? (
+                          {r.estado === "Completado" || ['cumpleanos','cumpleaños','Cumpleaños'].includes(r.tipo_solicitud) ? (
                             <Button size='sm' variant={r.archivo != null ? 'link' : 'ghost'} onClick={() => window.location.href =`${r.archivo}`} disabled={r.archivo === null}><FileDown className="h-4 w-4"/></Button>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={["cumpleaños", "vacaciones"].includes(r.tipo_solicitud) || ["Completado", "Rechazada"].includes(r.estado)} title={r.estado === 'Completado' ? 'Esta solicitud ya fue Completado' : 'Agregar archivo'}>
+                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={["cumpleanos","Cumpleaños", "vacaciones","Vacaciones"].includes(r.tipo_solicitud) || ["Completado", "Rechazada"].includes(r.estado)} title={r.estado === 'Completado' ? 'Esta solicitud ya fue Completado' : 'Agregar archivo'}>
                             <BadgePlus className="h-4 w-4" />
                           </Button>)}
                         </div>
