@@ -240,6 +240,9 @@ export default function Solicitudes() {
   }
 
   const updateEstado = async (solicitud: Solicitud, estado: string) => {
+
+    console.log({"Actualizando estado a:": estado, "Solicitud:": solicitud});
+
     try {
       const { error } = await supabase
         .from("certificaciones_solicitudes")
@@ -254,6 +257,26 @@ export default function Solicitudes() {
       toast({ title: "Error al actualizar", description: e.message });
     }
   };
+
+  const rechazarSolicitud = async () => {
+    if (!rechazoSolicitud) return;
+    const { error } = await supabase
+      .from("certificaciones_solicitudes")
+      .update({ estado: "Rechazada", razon: rechazoMotivo.trim() })
+      .eq("id", rechazoSolicitud.id);
+
+      setViewing((prev) => prev ? { ...prev, estado: "Rechazada" } : prev); 
+
+    if (error) {
+      toast({ title: "Error al rechazar", description: error.message });
+    } else {
+      toast({ title: "Solicitud rechazada" });
+      setOpenRechazo(false);
+      setRechazoMotivo("");
+      setRechazoSolicitud(null);
+      qc.invalidateQueries({ queryKey: ["solicitudes"] });
+    }
+  }
 
   useEffect(() => {
     if (viewing && rechazoMotivo) {
@@ -361,7 +384,7 @@ export default function Solicitudes() {
                       <TableCell>{r.id}</TableCell>
                       <TableCell>{fecha}</TableCell>
                       <TableCell>{nombreCompleto}</TableCell>
-                      <TableCell>{capitalizeFirstLetter(r.tipo_solicitud) || '-'}</TableCell>
+                      <TableCell>{capitalizeFirstLetter(r.tipo_solicitud === 'cumpleanos' ? r.tipo_solicitud?.replace('n', 'ñ') ?? '' : r.tipo_solicitud ?? '') || '-'}</TableCell>
                       <TableCell>
                         <div className="bg-transparent border-0 p-0 m-0">
                           <select
@@ -370,7 +393,7 @@ export default function Solicitudes() {
                             onChange={(e) => {
                               const selected = e.target.value;
                               if (selected === "Rechazada") {
-                                setRechazoSolicitud(viewing); 
+                                setRechazoSolicitud(r); 
                                 setOpenRechazo(true);
                               } else {
                                 updateEstado(r, selected);
@@ -385,7 +408,7 @@ export default function Solicitudes() {
                             {r.estado === 'Completado' && (
                               <option value="Completado" disabled>Completado</option>
                             )}
-                            {['cumpleaños', 'vacaciones'].includes(r.tipo_solicitud) && (<option value="Completado">Completado</option>)}
+                            {['cumpleanos', 'vacaciones'].includes(r.tipo_solicitud?.toLowerCase()) && (<option value="Completado">Completado</option>)}
                             <option value="En Progreso">En progreso</option>
                             <option value="Rechazada">Rechazada</option>
                           </select>
@@ -393,10 +416,10 @@ export default function Solicitudes() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          {r.estado === "Completado" || ['cumpleanos','cumpleaños','Cumpleaños'].includes(r.tipo_solicitud) ? (
+                          {r.estado === "Completado" || ['cumpleanos','cumpleaños'].includes(r.tipo_solicitud?.toLowerCase()) ? (
                             <Button size='sm' variant={r.archivo != null ? 'link' : 'ghost'} onClick={() => window.location.href =`${r.archivo}`} disabled={r.archivo === null}><FileDown className="h-4 w-4"/></Button>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={["cumpleanos","Cumpleaños", "vacaciones","Vacaciones"].includes(r.tipo_solicitud) || ["Completado", "Rechazada"].includes(r.estado)} title={r.estado === 'Completado' ? 'Esta solicitud ya fue Completado' : 'Agregar archivo'}>
+                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={["cumpleanos", "vacaciones"].includes(r.tipo_solicitud?.toLowerCase()) || ["Completado", "Rechazada"].includes(r.estado)} title={r.estado === 'Completado' ? 'Esta solicitud ya fue Completado' : 'Agregar archivo'}>
                             <BadgePlus className="h-4 w-4" />
                           </Button>)}
                         </div>
@@ -448,6 +471,7 @@ export default function Solicitudes() {
                   <div>
                     <div className="text-xs text-muted-foreground">Estado</div>
                     <div className="font-medium"> 
+                      {console.log(viewing.estado)}
                       {isAdmin ? (
                         <select
                           className="bg-transparent border-none p-1 text-sm text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none"
@@ -463,6 +487,7 @@ export default function Solicitudes() {
                             }
                           }}
                         >
+
                           {viewing.estado === undefined && (
                             <option value="" disabled>Selecciona un estado</option>
                           )}
@@ -600,24 +625,7 @@ export default function Solicitudes() {
                 <Button variant="secondary" onClick={() => setOpenRechazo(false)}>Cancelar</Button>
                 <Button
                   disabled={!rechazoMotivo.trim()}
-                  onClick={async () => {
-                    if (!rechazoSolicitud) return;
-                    const { error } = await supabase
-                      .from("certificaciones_solicitudes")
-                      .update({ estado: "Rechazada", razon: rechazoMotivo.trim() })
-                      .eq("id", rechazoSolicitud.id);
-
-                    setViewing((prev) => prev ? { ...prev, estado: "Rechazada" } : prev); 
-                    if (error) {
-                      toast({ title: "Error al rechazar", description: error.message });
-                    } else {
-                      toast({ title: "Solicitud rechazada" });
-                      setOpenRechazo(false);
-                      setRechazoMotivo("");
-                      setRechazoSolicitud(null);
-                      qc.invalidateQueries({ queryKey: ["solicitudes"] });
-                    }
-                  }}
+                  onClick={rechazarSolicitud}
                 >
                   Confirmar rechazo
                 </Button>
