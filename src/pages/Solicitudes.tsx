@@ -68,6 +68,7 @@ export default function Solicitudes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRoles();
   const qc = useQueryClient();
+  const [isDragging, setIsDragging] = useState(false);
 
   // Estado para modal de rechazo
   const [openRechazo, setOpenRechazo] = useState(false);
@@ -180,7 +181,7 @@ export default function Solicitudes() {
       const nuevoArchivo = new File([file], `${solicitud.correo} | ${format(fecha, 'dd-MM-yyyy')}`, { type: file.type });
 
       const metadata = {
-        name: `${solicitud.correo} | ${format(fecha, 'dd-MM-yyyy')}`,
+        name: `${solicitud.correo} | ${format(fecha, 'dd-MM-yyyy')}.pdf`,
         parents: ['1D3s5Z0jOd5oUD9WCXxgxbFKVfZ5-BQai']
       };
 
@@ -226,7 +227,9 @@ export default function Solicitudes() {
       if (!response.ok) throw new Error('Error al subir archivo');
       const data = await response.json();
 
-      const modifyStatus = await supabase.from('certificaciones_solicitudes').update({ estado: 'Completado' }).eq('id', solicitud.id);
+      console.log({"Archivo ID": data?.nombre, "data": data});
+
+      const modifyStatus = await supabase.from('certificaciones_solicitudes').update({ estado: 'Completado', archivo: `https://drive.google.com/uc?id=${data?.id}&export=download`}).eq('id', solicitud.id);
 
       qc.invalidateQueries({ queryKey: ["solicitudes"] });
 
@@ -416,10 +419,10 @@ export default function Solicitudes() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          {r.estado === "Completado" || ['cumpleanos','cumpleaños'].includes(r.tipo_solicitud?.toLowerCase()) ? (
+                          {r.estado === "Completado" || ['cumpleanos','cumpleaños', 'vacaciones'].includes(r.tipo_solicitud?.toLowerCase().trim()) ? (
                             <Button size='sm' variant={r.archivo != null ? 'link' : 'ghost'} onClick={() => window.location.href =`${r.archivo}`} disabled={r.archivo === null}><FileDown className="h-4 w-4"/></Button>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={["cumpleanos", "vacaciones"].includes(r.tipo_solicitud?.toLowerCase()) || ["Completado", "Rechazada"].includes(r.estado)} title={r.estado === 'Completado' ? 'Esta solicitud ya fue Completado' : 'Agregar archivo'}>
+                          <Button size="sm" variant="ghost" onClick={() => openAddFile(r)} aria-label="Ver detalle" disabled={["cumpleaños","cumpleanos", "vacaciones"].includes(r.tipo_solicitud?.toLowerCase().trim()) || ["Completado", "Rechazada"].includes(r.estado)} title={r.estado === 'Completado' ? 'Esta solicitud ya fue Completado' : 'Agregar archivo'}>
                             <BadgePlus className="h-4 w-4" />
                           </Button>)}
                         </div>
@@ -429,7 +432,6 @@ export default function Solicitudes() {
                           <Button size="sm" variant="ghost" onClick={() => onOpenView(r)} aria-label="Añadir Archivo">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* Aquí puedes agregar lógica para editar si lo necesitas */}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -454,7 +456,6 @@ export default function Solicitudes() {
                 <div className="text-sm text-muted-foreground">Cargando...</div>
               ) : viewing ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* ...existing code for detalle... */}
                   <div>
                     <div className="text-xs text-muted-foreground">Ticket</div>
                     <div className="font-medium">{viewing.id}</div>
@@ -563,34 +564,59 @@ export default function Solicitudes() {
                   {solicitudArchivo ? `Cargar archivo para ${solicitudArchivo.nombre} ${solicitudArchivo.apellido}` : "Cargar archivo"}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-3">
-                <>
-                  {!isGoogleAuth && <div className="text-xs text-yellow-600 mb-2">⚠️ Se pedirá autorización de Google Drive</div>}
-                  <Input type="file" accept="application/pdf"onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
+              <div 
+                onClick={() => document.getElementById("fileUpload")?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const files = e.dataTransfer.files;
+                  if (files && files[0]) {
+                    setPdfFile(files[0]); 
+                  }
+                }}
+                className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition-colors 
+                ${isDragging 
+                  ? "border-blue-500 bg-blue-100 dark:bg-blue-900/30" 
+                  : "border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }
+              `}
+            >
+            {!isGoogleAuth && <div className="text-xs text-yellow-600 mb-2">⚠️ Se pedirá autorización de Google Drive</div>}
+              <input
+                type="file"
+                accept=".pdf"
+                id="fileUpload"
+                className="hidden"
+                onChange={(e) => {           
+                  const file = e.target.files?.[0] || null;
 
-                    if (file) {
-                      const isPDF =
-                        file.type === "application/pdf" ||
-                        file.name.toLowerCase().endsWith(".pdf");
+                  if (file) {
+                    const isPDF =
+                      file.type === "application/pdf" ||
+                      file.name.toLowerCase().endsWith(".pdf");
 
-                      if (!isPDF) {
-                        toast({
-                          title: "Archivo inválido",
-                          description: "Solo se permiten archivos PDF.",
-                          variant: "destructive",
-                        });
-                        setPdfFile(null);
-                        return;
-                      }
-
-                      setPdfFile(file);
-                    } else {
+                    if (!isPDF) {
+                      toast({
+                        title: "Archivo inválido",
+                        description: "Solo se permiten archivos PDF.",
+                        variant: "destructive",
+                      });
                       setPdfFile(null);
+                      return;
                     }
-                  }} 
-                  />
-                </>
+
+                    setPdfFile(file);
+                  } else {
+                    setPdfFile(null);
+                  }
+                }}
+              />
+              {pdfFile ? `🗂️ ${pdfFile.name}` : "Arrastra un archivo o haz clic para subirlo"}
               </div>
               <DialogFooter>
                 <Button variant="secondary" onClick={() => setOpenArchivo(false)}>Cancelar</Button>
