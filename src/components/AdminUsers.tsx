@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Edit2 } from "lucide-react";
 import type { AppRole } from "@/hooks/useUserRoles";
+import { ref } from "process";
 
 interface ProfileRow {
   id: string;
@@ -167,17 +168,23 @@ export default function AdminUsers() {
     }
   };
 
-
   const deleteUsuario = async () => {
     if (!editUser) return;
     setSavingEdit(true);
-    const { error } = await supabase.from("profiles").delete().eq("id", editUser.id);
-    if (error) throw error;
-    toast.success("Usuario eliminado");
-    setEditOpen(false);
-    setEditUser(null);
-    await refetch();
-    setSavingEdit(false);
+    const { error } = await supabase.functions.invoke("admin-delete-users", {
+      body: {userId: editUser.id},
+    });
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message || "Error llamando a la función");
+      setSavingEdit(false);
+      return;
+    }
+    await refetch()
+    toast.success("Usuario eliminado exitosamente")
+    setSavingEdit(false)
+    setEditOpen(false)
   }
 
   const header = useMemo(() => (
@@ -333,5 +340,3 @@ export default function AdminUsers() {
     </div>
   );
 }
-
-

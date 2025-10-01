@@ -10,8 +10,6 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Edit2 } from "lucide-react";
 import { toast } from "sonner";
-import { normalize } from "path";
-
 interface JefeRow {
   area_id: string;
   empleado_id: string;

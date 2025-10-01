@@ -5,11 +5,8 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore-file
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.54.0";
+import { corsHeaders } from "../../cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 // @ts-ignore-file
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 // @ts-ignore-file

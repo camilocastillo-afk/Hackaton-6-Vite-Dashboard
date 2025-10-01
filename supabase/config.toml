@@ -1,4 +1,5 @@
 project_id = "uxbfkpofhsfatwxswkav"
 
 [functions.admin-create-user]
+[functions.admin-delete-users]
 verify_jwt = true
