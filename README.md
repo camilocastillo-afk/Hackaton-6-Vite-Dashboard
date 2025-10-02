@@ -12,9 +12,13 @@ RRHH Bewe es una aplicación interna para la gestión de solicitudes de certific
 
 ## 🧩 Características principales
 - Gestión de solicitudes (crear, ver detalle, filtrar).
+- Gestión de Usuarios
+- Gestión de Empleados
+- Gestión de Jefes y Áreas 
 - Roles: **Usuario** y **Administrador** (control de accesos y permisos).
 - Rechazo de solicitudes con motivo (modal de confirmación).
 - Carga de archivos PDF a **Google Drive** y marcado automático de solicitud como `Procesada`.
+- Importación/Exportación de datos de empleados por medio de arhivos .csv
 - Filtros por estado, nombre y rango de fechas.
 - Dashboard y métricas básicas (Home).
 - Cache y sincronización con **React Query**.
@@ -36,7 +40,7 @@ RRHH Bewe es una aplicación interna para la gestión de solicitudes de certific
 
 ## 📦 Requisitos
 - Node >= 18
-- Cuenta/instancia de Supabase con la tabla `certificaciones_solicitudes`
+- Cuenta/instancia de Supabase con el esquema de tablas presentado en supabase/setup.js
 - Google Cloud Project + credenciales OAuth (Drive API habilitada)
 - Acceso a credenciales privadas de la empresa (no subir a repos públicos)
 
@@ -46,23 +50,26 @@ RRHH Bewe es una aplicación interna para la gestión de solicitudes de certific
 
 1. Clonar el repo:
    ```bash
-   git clone git@github.com:tu-org/tu-repo.git
-   cd tu-repo
+   git clone https://github.com/camilocastillo-afk/Hackaton-6-Vite-Dashboard
+   cd Hackaton-6-Vite-Dashboard
 
 2. Instalar dependencias:
    ```bash
    npm install
 
-3. Crear `.env.local` (ejemplo)
+3. Renombrar `.env~~.local~~` y relleanar con las credenciales correspondientes 
    ```env
+   VITE_SUPABASE_PROJECT_ID="YOUR_PROJECT_ID"
    VITE_SUPABASE_URL=https://your-supabase-url.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key
    VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-   # (otros secrets internos) 
+   VITE_SECRET_KEY_GOOGLE="YOUR_SECRET_KEY"
+   # Usar .env.example para más detalles
 
 4. Ejecutar en desarrollo
    ```bash
    npm run dev
+   # Si usa Bun -> Bun Vite (run), Bun Vite Build,
 
 5. Build de producción
    ```bash
@@ -71,19 +78,13 @@ RRHH Bewe es una aplicación interna para la gestión de solicitudes de certific
 
 ---
 
-## Variables de entorno (mínimas)
-- `VITE_SUPABASE_URL` — URL del proyecto Supabase  
-- `VITE_SUPABASE_ANON_KEY` — Key pública/anon (frontend)  
-- `VITE_GOOGLE_CLIENT_ID` — Cliente OAuth para Drive API  
-- *(Agregar otras variables internas según despliegue: `BACKEND_API`, `SENTRY_DSN`, etc.)*  
-
 > ⚠️ **Importante**: no commitear credenciales. Usar secret management del entorno (Vault, GitHub Actions Secrets, etc.).
 
 ---
 
 ## Flujo de estados de solicitudes
-- **En proceso** → estado inicial al crear la solicitud.  
-- **Procesada** → cuando se adjunta archivo o el admin marca como completada.  
+- **En Progreso** → estado inicial al crear la solicitud.  
+- **Completada** → cuando se adjunta archivo o el admin marca como completada.  
 - **Rechazada** → requiere motivo obligatorio, se gestiona vía modal.
 
 ---
